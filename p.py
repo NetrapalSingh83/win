@@ -14,7 +14,8 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.neural_network import MLPClassifier
 from telegram import Bot
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -34,7 +35,7 @@ WINDOW_SIZE = 5
 NUM_CLASSES = 10
 
 # === LOGGER SETUP ===
-logger = logging.getLogger("WingoUltimateBot")
+logger = logging.getLogger("WingoFirefoxBot")
 logger.setLevel(logging.DEBUG)
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.INFO)
@@ -206,7 +207,7 @@ def send_to_telegram(prediction, next_period):
     size_label = get_size_label(prediction)
     color_label = get_color_label(prediction)
     msg = (
-        "🎯 *Wingo Ultimate Bot*\n"
+        "🎯 *Wingo Firefox Bot*\n"
         f"📈 Next Period: `{next_period}`\n"
         f"🔮 Predicted Number: *{prediction}*\n"
         f"{size_label} | {color_label}"
@@ -245,13 +246,14 @@ def monitor_results(driver, known_periods):
 
 # === MAIN
 def main():
-    logger.info("🚀 Launching Wingo Ultimate Bot...")
-    chrome_options = Options()
-    # chrome_options.add_argument("--headless")  # Uncomment on VPS
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
+    logger.info("🚀 Launching Wingo Firefox Bot...")
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-gpu")
 
-    driver = webdriver.Chrome(options=chrome_options)
+    service = Service("/usr/bin/geckodriver")
+    driver = webdriver.Firefox(service=service, options=options)
 
     try:
         login(driver)
