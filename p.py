@@ -9,18 +9,17 @@ from logging.handlers import RotatingFileHandler
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
-from selenium.webdriver.firefox.service import Service as FirefoxService
 from telegram import Bot
 
 # === CONFIG ===
 USERNAME = "8302257716"
 PASSWORD = "Rajput183"
 TELEGRAM_BOT_TOKEN = '7694295301:AAFq9WhPnAYFdr_ZOMHISAAkP8ZGaDit-Nw'
-TELEGRAM_CHAT_IDS = ['5759284972', '5851079012', '1216702307', '8003600588', '1240179115']
+TELEGRAM_CHAT_IDS = TELEGRAM_CHAT_IDS = ['5759284972', '5851079012', '1216702307', '8003600588', '1240179115']  # Add multiple chat IDs here
 
 LOGIN_URL = "https://2india.in/#/login"
 WINGO_URL = "https://2india.in/#/home/AllLotteryGames/WinGo?id=1"
@@ -197,22 +196,27 @@ def send_to_telegram(prediction, next_period):
         except Exception as e:
             logger.error(f"❌ Failed to send to {chat_id}", exc_info=True)
 
-# === MONITOR LOOP ===
+# === MONITOR LOOP WITH AUTO-RELOAD ===
 def monitor_results(driver, known_periods):
     logger.info("📡 Monitoring Wingo...")
+
     last_refresh_time = time.time()
 
     while True:
         try:
-            if time.time() - last_refresh_time >= 30:
-                logger.info("🔄 Auto-refreshing page")
+            current_time = time.time()
+
+            # 🔁 Refresh page every 30 seconds
+            if current_time - last_refresh_time >= 30:
+                logger.info("🔄 Auto-refreshing Wingo page (30s interval)")
                 driver.refresh()
-                last_refresh_time = time.time()
-                time.sleep(5)
+                last_refresh_time = current_time
+                time.sleep(5)  # Wait a bit for page to reload
 
             data = collect_page_data(driver)
+
             if not data:
-                logger.warning("⚠️ No data found.")
+                logger.warning("⚠️ No data found on page.")
                 time.sleep(5)
                 continue
 
@@ -227,25 +231,25 @@ def monitor_results(driver, known_periods):
                     prediction = predict_next_number(all_numbers)
 
                     next_period = str(int(period) + 1)
-                    logger.info(f"🔮 Prediction: {prediction} for next: {next_period}")
+                    logger.info(f"🔮 Prediction: {prediction} for next period: {next_period}")
                     send_to_telegram(prediction, next_period)
                     save_prediction(period, prediction, next_period)
 
             time.sleep(10)
 
         except Exception as e:
-            logger.error("❌ Monitor error", exc_info=True)
+            logger.error("❌ Error during monitor loop. Retrying...", exc_info=True)
             time.sleep(5)
 
-# === ENTRY POINT ===
+# === MAIN ENTRY ===
 def main():
-    logger.info("🚀 Starting Wingo ML Bot (Firefox)...")
+    logger.info("🚀 Starting Wingo ML Bot...")
+    chrome_options = Options()
+    # chrome_options.add_argument("--headless")  # Uncomment for headless mode
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
 
-    options = FirefoxOptions()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-
-    driver = webdriver.Firefox(service=FirefoxService(), options=options)
+    driver = webdriver.Chrome(options=chrome_options)
 
     try:
         login(driver)
